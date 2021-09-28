@@ -1,0 +1,188 @@
+\documentclass{scrartcl}
+
+% No indentation in the beginning of a paragraph
+\setlength{\parindent}{0pt}
+%section numbering depth
+\setcounter{secnumdepth}{3}
+%depth of TOC
+\setcounter{tocdepth}{2}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{luainputenc}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{natbib}
+
+\bibliographystyle{alpha}
+
+\usepackage{tikz}
+\usepackage{tikzpagenodes} % Adds more nodes for placement on page
+\usetikzlibrary{
+    calc,
+    turtle,
+    positioning
+}
+
+% allow adding a clickable ORCID
+% https://tex.stackexchange.com/questions/445563/ieeetran-how-to-include-orcid-in-tex-pdf-with-pdflatex/445583#445583
+\usepackage{scalerel}
+\usepackage{tikz}
+\usetikzlibrary{svg.path}
+\definecolor{orcidlogocol}{HTML}{A6CE39}
+\tikzset{
+  orcidlogo/.pic={
+    \fill[orcidlogocol] svg{M256,128c0,70.7-57.3,128-128,128C57.3,256,0,198.7,0,128C0,57.3,57.3,0,128,0C198.7,0,256,57.3,256,128z};
+    \fill[white] svg{M86.3,186.2H70.9V79.1h15.4v48.4V186.2z}
+                 svg{M108.9,79.1h41.6c39.6,0,57,28.3,57,53.6c0,27.5-21.5,53.6-56.8,53.6h-41.8V79.1z M124.3,172.4h24.5c34.9,0,42.9-26.5,42.9-39.7c0-21.5-13.7-39.7-43.7-39.7h-23.7V172.4z}
+                 svg{M88.7,56.8c0,5.5-4.5,10.1-10.1,10.1c-5.6,0-10.1-4.6-10.1-10.1c0-5.6,4.5-10.1,10.1-10.1C84.2,46.7,88.7,51.3,88.7,56.8z};
+  }
+}
+
+\newcommand\orcid[1]{\href{#1}{\mbox{\scalerel*{
+\begin{tikzpicture}[yscale=-1,transform shape]
+\pic{orcidlogo};
+\end{tikzpicture}
+}{|}}}}
+% --
+
+\makeatletter
+
+% everything concerning authors is put into \authorinfo{ ... }
+\newcommand{\authorinfo}[1]{\newcommand{\@myAuthorInfo}{#1}}
+
+% custom title page definition
+\newcommand*{\makemytitle}{
+\begin{titlepage}
+
+\@title
+
+\@subtitle
+
+\@myAuthorInfo
+
+\@date
+
+\end{titlepage}
+}
+\makeatother
+
+% Commands to list the authors (we can format/style them here, hiding it from users)
+
+% The mark(s) for the affiliation or notice
+\newcommand*{\authormark}[1]{\textsuperscript{#1}}
+
+% Intended way to add authors to author section
+% \addauthor{Author Name}{ORCID (only numbers)}{list of affiliation or note superscripts}
+\def \ifempty#1{\def\temp{#1} \ifx\temp\empty }
+\newcommand*{\addauthor}[3]{%
+\ifempty{#3}#1\else #1\authormark{#3}\fi\ifempty{#2}\else\orcid{#2}\fi%
+}
+
+% Intended way to add the institution (+ address)
+\newcommand*{\affiliation}[2]{\authormark{#1}#2}
+
+% Intended way to add the email address(es)
+\newcommand{\email}[1]{\texttt{#1}}
+
+% Intended way to add a notice, like acknowledgement or funding information
+% NOTE: This is actually a tabular row
+\newcommand*{\authornotice}[2]{\authormark{#1} & {\footnotesize #2}\\[-1mm]}
+
+% Places the notice in an absolute location above the branding image, like a footnote
+% Inside the argument \authornotice should be used for all non-affiliation notices
+\newcommand{\authornotices}[1]{
+  \begin{tikzpicture}[remember picture,overlay]
+    \node[inner sep=0,anchor=south west,yshift=-1cm] at (current page text area.west)
+    {\setlength{\tabcolsep}{0pt}\begin{tabular}{rl}#1\quad\end{tabular}};
+  \end{tikzpicture}
+}
+
+
+% ---- other custom features ----
+
+% auto-fill pdf title etc
+\makeatletter
+\AtBeginDocument{
+  \hypersetup{
+    pdftitle = {\@title},
+%     pdfauthor = {\@author}
+  }
+}
+\makeatother
+
+% Wrap bibliography command to add section in toc
+% this must be called before \begin{document}
+\newcommand{\mybibliography}[1]{
+\makeatletter
+\AtEndDocument{
+\phantomsection \addcontentsline{toc}{section}{Bibliography} \bibliography{#1}%
+}
+\makeatother
+}
+
+% ---- required for pandoc ----
+
+% from default pandoc LaTeX template
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\newcommand{\passthrough}[1]{#1}
+\usepackage{listings}
+\usepackage[normalem]{ulem}
+\usepackage{longtable}
+\usepackage{booktabs}
+% -----------------------------
+
+
+$if(title)$
+\title{$title$}
+$endif$
+
+$if(subtitle)$
+\subtitle{$subtitle$}
+$endif$
+
+$if(date)$
+\date{$date$}
+$endif$
+
+\authorinfo{
+  %\addauthor{name}{orc id}{author affiliation or notice superscripts}
+  $for(authors)$
+  \addauthor{$authors.given-names$ $authors.family-names$}{$authors.orcid$}{$if(authors.affiliation-mark)$$authors.affiliation-mark$$if(authors.notices-mark)$,$endif$$endif$$if(authors.notices-mark)$$authors.notices-mark$$endif$}
+  $sep$, $endfor$
+
+  \vspace{2cm}
+
+  % affiliation superscripts
+  $for(authors)$
+    $if(authors.affiliation)$
+      \affiliation{$authors.affiliation-mark$}{$authors.affiliation$}\\
+    $endif$
+  $endfor$
+
+  % E-mail addresses
+  $for(emails)$
+    \email{$emails$}
+  $sep$\quad $endfor$
+
+  % Additional notices (e.g. acknowledgement or funding notice)
+  \authornotices{
+    $for(notices)$
+    \authornotice{$notices.mark$}{$notices.text$}
+    $endfor$
+  }
+}
+
+% comment out if not needed:
+\mybibliography{literature} % <- will look for literature.bib
+
+\begin{document}
+
+\makemytitle
+
+\tableofcontents
+
+$body$
+
+\end{document}
